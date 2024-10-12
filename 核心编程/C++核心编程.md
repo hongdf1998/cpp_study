@@ -2659,3 +2659,84 @@ public:
 
 虚函数原理与虚继承类似，类对象中存在 vbptr，vbptr 指向类的 vbtable，vbtable 里面存放着虚函数的首地址。
 
+---
+
+案例1：计算器
+
+分别利用普通写法和多态技术，设计实现两个操作数进行运算的计算器类。
+
+> 开闭原则：对扩展进行开放，对修改进行关闭
+
+```c++
+// 普通写法
+class Calculator{
+public:
+    int getResult(char oper){
+        if (oper == '+'){
+            return m_Num1 + m_Num2;
+        }else if(oper == '-'){
+            return m_Num1 - m_Num2;
+        }else if(oper == '*'){
+            return m_Num1 * m_Num2;
+        }else{
+            cout << "还不支持该功能" << endl;
+        }
+    }
+
+    int m_Num1;
+    int m_Num2;
+};
+```
+
+如果后续需要增加新的功能，比如除法、开方之类的，那么就需要在 `Calculator` 类中增加，虽然可行，但不满足开闭原则。
+
+使用多态技术：
+
+```c++
+// 多态技术
+class AbstractCalculator{
+public:
+    virtual int getResult(){
+        return 0;
+    }
+    int m_Num1;
+    int m_Num2;
+};
+
+class AddCalculator : public AbstractCalculator{
+public:
+    virtual int getResult(){
+        return m_Num1 + m_Num2;
+    }
+};
+
+class SubCalculator : public AbstractCalculator{
+public:
+    virtual int getResult(){
+        return m_Num1 - m_Num2;
+    }
+};
+
+class MulCalculator : public AbstractCalculator{
+public:
+    virtual int getResult(){
+        return m_Num1 * m_Num2;
+    }
+};
+```
+
+
+
+
+
+
+
+
+
+---
+
+多态的优点：
+
+1. 代码组织结构清晰；
+2. 可读性强；
+3. 利于前期和后期的扩展以及维护；
