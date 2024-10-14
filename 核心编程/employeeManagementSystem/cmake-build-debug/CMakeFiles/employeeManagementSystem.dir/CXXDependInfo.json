@@ -1,0 +1,21 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "GNU",
+	"compiler-simulate-id" : "",
+	"config" : "Debug",
+	"cxx-modules" : {},
+	"dir-cur-bld" : "C:/CS/c++/employeeManagementSystem/cmake-build-debug",
+	"dir-cur-src" : "C:/CS/c++/employeeManagementSystem",
+	"dir-top-bld" : "C:/CS/c++/employeeManagementSystem/cmake-build-debug",
+	"dir-top-src" : "C:/CS/c++/employeeManagementSystem",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"C:\\CS\\c++\\employeeManagementSystem\\include"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "C:/CS/c++/employeeManagementSystem/cmake-build-debug/CMakeFiles/employeeManagementSystem.dir"
+}

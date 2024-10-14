@@ -1,0 +1,11 @@
+{
+"rules": [
+{
+"primary-output": "CMakeFiles/employeeManagementSystem.dir/src/manager.cpp.o",
+"requires": [
+]
+}
+],
+"version": 0,
+"revision": 0
+}
