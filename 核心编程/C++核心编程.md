@@ -3154,7 +3154,7 @@ C++中队文件操作需要包含头文件 `fstream`。
 | `ios::ate`           | 文件打开后定位到文件末尾。                                   |
 | `ios::in`            | 打开文件用于读取。                                           |
 | `ios::out`           | 打开文件用于写入。                                           |
-| `ios::trunc`         | 如果该文件已经存在，其内容将在打开文件之前被截断，即把文件长度设为 0（删除原文件）。 |
+| `ios::trunc`         | 如果该文件已经存在，其内容将在打开文件之前被截断，即把文件长度设为 0（删除原文件再重新创建）。 |
 
 > 注意：
 >
@@ -3499,4 +3499,664 @@ int main() {
 1. 第一次使用，文件未创建
 2. 文件存在，但是数据被用户清空
 3. 文件存在，并且保存职工的所有数据
+
+
+
+## 源码
+
+`main.cpp`
+
+```c++
+#include <iostream>
+#include "workerManager.h"
+#include "worker.h"
+#include "boss.h"
+#include "manager.h"
+#include "employee.h"
+
+int main() {
+    workerManager wm;
+    int choice = -1;
+    while(true){
+        wm.showMenu();
+        cout << "请输入您的选择：";
+        cin >> choice;
+        switch(choice){
+            case 0:
+                wm.exitSystem();
+                break;
+            case 1:
+                wm.showEmp();
+                break;
+            case 2:
+                wm.addEmp();
+                break;
+            case 3:
+                wm.delEmp();
+                break;
+            case 4:
+                wm.modEmp();
+                break;
+            case 5:
+                wm.findEmp();
+                break;
+            case 6:
+                wm.sortEmp();
+                break;
+            case 7:
+                wm.cleanFile();
+                break;
+            default:
+                system("cls");
+                break;
+        }
+    }
+    return 0;
+}
+
+```
+
+### 头文件(include)
+
+`workerManager.h`
+
+```c++
+#pragma once
+#include <iostream>
+#include "fstream"
+#include "worker.h"
+#define FILEPATH "empFile.txt"
+using namespace std;
+
+class workerManager{
+public:
+    workerManager();
+    void showMenu();  // 展示菜单
+    void showEmp();  // 显示职工
+    void addEmp(); // 增加职工
+    void save();  // 将职工信息保存到文件
+    int getEmpNum(); // 获取职工数量
+    void initEmp();  // 初始化职工数组
+    int isExitst(int id);  // 判断员工是否存在
+    void delEmp();  // 删除职工
+    void modEmp();  // 修改职工
+    void findEmp(); // 查找职工
+    void sortEmp(); // 排序职工
+    void cleanFile();  // 情况文件
+    void exitSystem();  // 退出系统
+    ~workerManager();
+
+    int m_EmpNum;
+    Worker ** m_EmpArray;
+    bool m_FileIsEmpty;  // 标志文件是否为空
+};
+```
+
+`worker.h`
+
+```c++
+#pragma once
+#include <iostream>
+using namespace std;
+
+class Worker{
+public:
+    virtual void showInfo() = 0;
+    virtual string getDeptName() = 0;
+
+    string m_Name;
+    int m_Id;
+    int m_Did;
+};
+```
+
+`boss.h`
+
+```c++
+#pragma once
+#include <iostream>
+#include "worker.h"
+using namespace std;
+
+class Boss : public Worker{
+public:
+    Boss(string name, int id, int did);
+    virtual void showInfo();
+    virtual string getDeptName();
+};
+```
+
+`manager.h`
+
+```c++
+#pragma once
+#include <iostream>
+#include "worker.h"
+using namespace std;
+
+class Manager : public Worker{
+public:
+    Manager(string name, int id, int did);
+    virtual void showInfo();
+    virtual string getDeptName();
+};
+```
+
+`employee.h`
+
+```c++
+#pragma once
+#include <iostream>
+#include "worker.h"
+
+class Employee : public Worker{
+public:
+    Employee(string name, int id, int did);
+    virtual void showInfo();
+    virtual string getDeptName();
+};
+```
+
+### 源文件(src)
+
+`workerManager.cpp`
+
+```c++
+#include "workerManager.h"
+#include "worker.h"
+#include "boss.h"
+#include "manager.h"
+#include "employee.h"
+
+workerManager::workerManager(){
+    ifstream ifs;
+    ifs.open(FILEPATH, ios::in);
+    if (!ifs.is_open()){
+        cout << "文件不存在" << endl;
+        this->m_EmpNum = 0;
+        this->m_EmpArray = NULL;
+        this->m_FileIsEmpty = true;
+        return;
+    }
+
+    char ch;
+    ifs >> ch;
+    if (ifs.eof()){
+        // 文件为空
+        cout << "文件为空" << endl;
+        this->m_EmpNum = 0;
+        this->m_EmpArray = NULL;
+        this->m_FileIsEmpty = true;
+        return;
+    }
+
+    // 文件不为空，初始化
+    this->m_EmpNum = this->getEmpNum();
+    this->m_FileIsEmpty = false;
+    this->m_EmpArray = new Worker * [this->m_EmpNum];
+    this->initEmp();
+    // 下面为测试代码
+//    cout << "职工人数为：" << this->m_EmpNum << endl;
+//    for (int i = 0; i < this->m_EmpNum; i++){
+//        cout << this->m_EmpArray[i]->m_Id << '\t' << this->m_EmpArray[i]->m_Name << '\t' << this->m_EmpArray[i]->m_Did << endl;
+//    }
+
+
+}
+
+void workerManager::showMenu(){
+    cout << "***********************************************" << endl;
+    cout << "***********\t欢迎使用职工管理系统\t*******" << endl;
+    cout << "***********\t1.显示职工信息\t***************" << endl;
+    cout << "***********\t2.增加职工信息\t***************" << endl;
+    cout << "***********\t3.删除职工信息\t***************" << endl;
+    cout << "***********\t4.修改职工信息\t***************" << endl;
+    cout << "***********\t5.查找职工信息\t***************" << endl;
+    cout << "***********\t6.按照编号排序\t***************" << endl;
+    cout << "***********\t7.清空所有文档\t***************" << endl;
+    cout << "***********\t0.退出管理系统\t***************" << endl;
+    cout << "***********************************************" << endl;
+}
+
+void workerManager::showEmp(){
+    if (this->m_FileIsEmpty){
+        cout << "文件为空，没有职工数据" << endl;
+    }else{
+        for (int i = 0; i < this->m_EmpNum; i++){
+            this->m_EmpArray[i]->showInfo();
+        }
+    }
+    system("pause");
+    system("cls");
+}
+
+int workerManager::getEmpNum() {
+    ifstream ifs;
+    ifs.open(FILEPATH, ios::in);
+    if(!ifs.is_open()){
+        cout << "打开文件失败" << endl;
+        exit(-1);
+    }
+    int num = 0;
+    char tmpBuff[1024] = {0};
+    while (ifs.getline(tmpBuff, sizeof(tmpBuff))){
+        num++;
+    }
+    ifs.close();
+    return num;
+}
+
+void workerManager::addEmp() {
+    int addNum = 0;  // 新增职工数量
+    cout << "请输入增加职工数量：";
+    cin >> addNum;
+    if (addNum > 0){
+        int newSize = this->m_EmpNum + addNum;  // 新增后，总员工数量
+        Worker ** newSpace = new Worker *[newSize];
+
+        if (this->m_EmpArray != NULL){
+            for (int i = 0; i < this->m_EmpNum; i++){
+                newSpace[i] = this->m_EmpArray[i];
+            }
+        }
+
+        for (int i = 0; i < addNum; i++){
+            int id;
+            int did;
+            string name;
+
+            cout << "输入第" << i + 1 << "个职工的信息" << endl;
+            cout << "姓名：";
+            cin >> name;
+            cout << "编号：";
+            cin >> id;
+
+            cout << "岗位：（输入数字）" << endl;
+            cout << "1、普通员工" << endl;
+            cout << "2、经理" << endl;
+            cout << "3、老板" << endl;
+            cin >> did;
+
+
+            Worker *worker = NULL;
+            switch(did){
+                case 1:
+                    worker = new Employee(name, id, did);
+                    break;
+                case 2:
+                    worker = new Manager(name, id, did);
+                    break;
+                case 3:
+                    worker = new Boss(name, id, did);
+                    break;
+                default:
+                    cout << "输入岗位有误！" << endl;
+                    return;
+            }
+
+            newSpace[this->m_EmpNum + i] = worker;
+        }
+        delete[] this->m_EmpArray;  // 释放原有空间
+        this->m_EmpArray = newSpace;  // 更改新空间的只想
+        this->m_EmpNum = newSize;  // 更新职工个数
+        this->m_FileIsEmpty = false; // 更新文件状态
+        cout << "成功添加" << addNum << "名新职工！" << endl;
+        this->save();
+
+    }else{
+        cout << "输入错误，数量必须大于0。" << endl;
+        return;
+    }
+    system("pause");
+    system("cls");
+}
+
+void workerManager::save(){
+    ofstream ofs;
+    ofs.open(FILEPATH, ios::out);
+
+    for (int i = 0; i < this->m_EmpNum; i++){
+        ofs << this->m_EmpArray[i]->m_Id << '\t'
+            << this->m_EmpArray[i]->m_Name << '\t'
+            << this->m_EmpArray[i]->m_Did << endl;
+    }
+
+    ofs.close();
+
+}
+
+void workerManager::initEmp() {
+    ifstream ifs;
+    string name;
+    int id;
+    int did;
+
+    ifs.open(FILEPATH, ios::in);
+    int index = 0;
+    while (ifs >> id && ifs >> name && ifs >> did) {
+        // 需要注意 id name did 的存储方式
+        Worker * worker = NULL;
+        switch(did){
+            case 1:
+                worker = new Employee(name, id, did);
+                break;
+            case 2:
+                worker = new Manager(name, id, did);
+                break;
+            case 3:
+                worker = new Boss(name, id, did);
+                break;
+            default:
+                cout << "文件数据错误" << endl;
+                exit(-1);
+        }
+        this->m_EmpArray[index++] = worker;
+    }
+    ifs.close();
+}
+
+int workerManager::isExitst(int id) {
+    int index = -1;
+    for (int i = 0; i < this->m_EmpNum; i++){
+        if (this->m_EmpArray[i]->m_Id == id){
+            index = i;
+            break;
+        }
+    }
+    return index;
+}
+
+void workerManager::delEmp() {
+    if (this->m_FileIsEmpty){
+        cout << "文件不存在" << endl;
+        return;
+    }
+    int id;
+    int idx;
+    cout << "请输入要删除的职工id：";
+    cin >> id;
+    idx = this->isExitst(id);
+    if (idx == -1){
+        cout << "该职工未找到" << endl;
+    }else{
+        // 删除就是数据前移
+        for (int i = idx; i < this->m_EmpNum - 1; i++){
+            this->m_EmpArray[i] = this->m_EmpArray[i+1];
+        }
+        this->m_EmpNum--;
+        this->save();
+        cout << "删除成功" << endl;
+    }
+    system("pause");
+    system("cls");
+}
+
+void workerManager::modEmp() {
+    if (this->m_FileIsEmpty){
+        cout << "文件不存在" << endl;
+        return;
+    }
+    int id;
+    int idx;
+    cout << "请输入要删除的职工id：";
+    cin >> id;
+    idx = this->isExitst(id);
+    if (idx == -1){
+        cout << "该职工未找到" << endl;
+    }else{
+        int newId;
+        int newDid;
+        string newName;
+        delete this->m_EmpArray[idx]; // 很重要，假设原来是boss，修改为manager，那么就需要修改类型！！！
+        cout << "找到该职工，请输入新的信息" << endl;
+        cout << "姓名：";
+        cin >> newName;
+        cout << "编号：";
+        cin >> newId;
+        cout << "岗位：（输入数字）" << endl;
+        cout << "1、普通员工" << endl;
+        cout << "2、经理" << endl;
+        cout << "3、老板" << endl;
+        cin >> newDid;
+
+        Worker *worker = NULL;
+        switch(newDid){
+            case 1:
+                worker = new Employee(newName, newId, newDid);
+                break;
+            case 2:
+                worker = new Manager(newName, newId, newDid);
+                break;
+            case 3:
+                worker = new Boss(newName, newId, newDid);
+                break;
+            default:
+                cout << "输入岗位有误！" << endl;
+                return;
+        }
+        this->m_EmpArray[idx] = worker;
+        this->save();
+        cout << "修改成功" << endl;
+    }
+    system("pause");
+    system("cls");
+}
+
+void workerManager::findEmp(){
+    if (this->m_FileIsEmpty){
+        cout << "文件不存在，或数据为空" << endl;
+        return;
+    }
+
+    int select = 0;
+    cout << "选择查询方式：" << endl;
+    cout << "1、按编号查询" << endl;
+    cout << "2、按名字查询" << endl;
+    cin >> select;
+
+    if (select == 1){
+        // 按编号查询
+        int id;
+        cout << "请输入要查询职工编号：";
+        cin >> id;
+
+        for (int i = 0; i < this->m_EmpNum; i++){
+            if (this->m_EmpArray[i]->m_Id == id){
+                this->m_EmpArray[i]->showInfo();
+                break;
+            }
+        }
+    }else if(select == 2){
+        // 按名字查询
+        string name;
+        cout << "请输入要查询职工名字：";
+        cin >> name;
+        for (int i = 0; i < this->m_EmpNum; i++){
+            if( this->m_EmpArray[i]->m_Name == name){
+                this->m_EmpArray[i]->showInfo();
+            }
+        }
+    }else{
+        // 输入错误
+        cout << "输入查询方式有误" << endl;
+    }
+    system("pause");
+    system("cls");
+}
+
+void workerManager::sortEmp() {
+    // 选择排序
+    if (this->m_FileIsEmpty){
+        cout << "文件不存在，或数据为空" << endl;
+        return;
+    }
+    int select = 0;
+    cout << "请选择排序方式：" << endl;
+    cout << "1、按照编号升序；" << endl;
+    cout << "2、按照编号降序；" << endl;
+    cin >> select;
+    if (select > 2 || select < 1){
+        cout << "输入有误" << endl;
+        return;
+    }
+
+    for (int i = 0; i < this->m_EmpNum - 1; i++){
+        int minOrMaxIndex = i;
+        for (int j = i + 1; j < this->m_EmpNum; j++){
+            if (select == 1){
+                // 升序
+                if (this->m_EmpArray[minOrMaxIndex]->m_Id > this->m_EmpArray[j]->m_Id){
+                    minOrMaxIndex = j;
+                }
+            }else{
+                // 降序
+                if (this->m_EmpArray[minOrMaxIndex]->m_Id < this->m_EmpArray[j]->m_Id) {
+                    minOrMaxIndex = j;
+                }
+            }
+        }
+        if (minOrMaxIndex != i){
+            Worker * tmp = this->m_EmpArray[i];
+            this->m_EmpArray[i] = this->m_EmpArray[minOrMaxIndex];
+            this->m_EmpArray[minOrMaxIndex] = tmp;
+        }
+    }
+
+    cout << "排序成功" << endl;
+    this->save();
+    this->showEmp();
+}
+
+void workerManager::cleanFile() {
+    if (this->m_FileIsEmpty){
+        cout << "文件不存在，或者数据为空" << endl;
+        return;
+    }
+
+    int select = 0;
+    cout << "确认要清空文件吗？" << endl;
+    cout << "1、确认" << endl;
+    cout << "2、取消" << endl;
+    cin >> select;
+
+    if(select == 1){
+        ofstream ofs(FILEPATH, ios::trunc); // trunc模式为删除当前文件从重建
+        ofs.close();
+
+        if (this->m_EmpArray != NULL){
+            for (int i = 0; i < this->m_EmpNum; i++){
+                if (this->m_EmpArray[i] != NULL){
+                    delete this->m_EmpArray[i];
+                    this->m_EmpArray[i] = NULL;
+                }
+            }
+            this->m_EmpNum = 0;
+            this->m_FileIsEmpty = true;
+            delete[] this->m_EmpArray;
+            this->m_EmpArray = NULL;
+        }
+        cout << "清空成功" << endl;
+        system("pause");
+        system("cls");
+    }else{
+        system("cls");
+    }
+}
+
+void workerManager::exitSystem(){
+    cout << "欢迎下次使用！" << endl;
+    system("pause");
+    exit(0);
+}
+
+workerManager::~workerManager(){
+    if (this->m_EmpArray != NULL){
+        for ( int i = 0; i < this->m_EmpNum; i++){
+            if (this->m_EmpArray[i] != NULL){
+                delete this->m_EmpArray[i];
+                this->m_EmpArray[i] = NULL;
+            }
+        }
+        delete[] this->m_EmpArray;
+        this->m_EmpArray = NULL;
+    }
+}
+```
+
+`boss.cpp`
+
+```c++
+#include "boss.h"
+
+Boss::Boss(string name, int id, int did){
+    this->m_Name = name;
+    this->m_Id = id;
+    this->m_Did = did;
+}
+
+void Boss::showInfo(){
+    cout << "姓名：" << this->m_Name << endl;
+    cout << "编号：" << this->m_Id << endl;
+    cout << "岗位：" << this->m_Did << endl;
+    cout << "岗位职责：管理公司所有事物。" << endl;
+}
+
+string Boss::getDeptName(){
+    return string("老板");
+}
+```
+
+`manager.cpp`
+
+```c++
+#include "manager.h"
+
+Manager::Manager(string name, int id, int did){
+    this->m_Name = name;
+    this->m_Id = id;
+    this->m_Did = did;
+}
+
+void Manager::showInfo(){
+    cout << "姓名：" << this->m_Name << endl;
+    cout << "编号：" << this->m_Id << endl;
+    cout << "岗位：" << this->m_Did << endl;
+    cout << "岗位职责：完成老板交代的任务。" << endl;
+}
+
+string Manager::getDeptName(){
+    return string("经理");
+}
+```
+
+`employee.cpp`
+
+```c++
+#include "employee.h"
+
+Employee::Employee(string name, int id, int did){
+    this->m_Name = name;
+    this->m_Id = id;
+    this->m_Did = did;
+}
+
+void Employee::showInfo() {
+    cout << "姓名：" << this->m_Name << endl;
+    cout << "编号：" << this->m_Id << endl;
+    cout << "岗位：" << this->m_Did << endl;
+    cout << "岗位职责：完成经理交代的任务。" << endl;
+}
+
+string Employee::getDeptName() {
+    return string("普通员工");
+}
+```
+
+
+
+
+
+
+
+
 
