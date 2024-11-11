@@ -3515,7 +3515,7 @@ public:
     void modEmp();  // 修改职工
     void findEmp(); // 查找职工
     void sortEmp(); // 排序职工
-    void cleanFile();  // 情况文件
+    void cleanFile();  // 清除文件
     void exitSystem();  // 退出系统
     ~workerManager();
 
@@ -3730,7 +3730,7 @@ void workerManager::addEmp() {
             newSpace[this->m_EmpNum + i] = worker;
         }
         delete[] this->m_EmpArray;  // 释放原有空间
-        this->m_EmpArray = newSpace;  // 更改新空间的只想
+        this->m_EmpArray = newSpace;  // 更改新空间的指向
         this->m_EmpNum = newSize;  // 更新职工个数
         this->m_FileIsEmpty = false; // 更新文件状态
         cout << "成功添加" << addNum << "名新职工！" << endl;
